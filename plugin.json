@@ -531,16 +531,6 @@
     "iconURL": "https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/notion.png",
     "authenticationType": "AUTH_TYPE_NONE",
     "implementationType": "javascript",
-    "httpAction": {
-        "id": "0ef6f5e9-92c2-4c97-84b3-1f20944a0b7f",
-        "name": "",
-        "url": "{pluginServer}/notion-database/query-pages",
-        "method": "POST",
-        "hasHeaders": true,
-        "requestHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
-        "hasBody": true,
-        "requestBody": "{\n  \"notionApiKey\": \"{notionApiKey}\",\n  \"databaseId\": \"{databaseId}\",\n  \"pageSize\": {pageSize},\n  \"startCursor\": \"{startCursor}\",\n  \"filter\": {filter},\n  \"sorts\": {sorts}\n}"
-    },
     "oauthConfig": null,
     "outputType": "respond_to_ai"
 }
