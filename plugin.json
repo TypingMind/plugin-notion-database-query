@@ -1,0 +1,547 @@
+{
+    "uuid": "7705fa3f-897d-4605-bd73-605d2a46b15a",
+    "id": "perform_notion_database_query",
+    "emoji": "🧩",
+    "title": "Notion Database Query",
+    "overviewMarkdown": "# **Notion Database Query**\nThis plugin allows users to query pages from a Notion database.\n\n### 🎯 **It Supports**\n- Filtering data by different property types based on the provided database information.\n- Sorting results in ascending or descending order.\n- Pagination with a specified page size.\n\n### 📝 **User Setting Notes:**\n#### 🔧 **Set Up the Plugin Server:**\n- A plugin server must be set up to use this feature. Follow the detailed guide to set up a plugin server on Render: [How to Deploy the Plugin Server on Render](https://docs.typingmind.com/plugins/plugins-server/how-to-deploy-plugins-server-on-render)\n\n#### 🔑 **Set Up Your Notion API Key:**\n- Go to the [Notion Integration Page](https://www.notion.so/profile/integrations) and create a new integration.\n- Copy the key from the Integration Detail Page.\n- Paste the key into the plugin's user settings:\n  **Notion API Key:** `ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`\n\nFor detailed instructions, visit the [Notion Integration API Documentation](https://developers.notion.com/docs/create-a-notion-integration)\n\n#### 🔗 **Share Your Database with the Integration:**\n- Open your database in Notion.\n- Click the **“Share”** button in the top right.\n- Select **“Invite”**, search for your integration name, and click **“Invite”** to grant access.\n\nFor detailed instructions, visit the [Notion API Connections Documentation](https://www.notion.com/help/add-and-manage-connections-with-the-api)\n\n### 📌 **Important Notes:**\n\n#### 👉 **Database Context Requirement:**\nTo use the plugin, you need to tell the AI your database ID along with the database structure at the beginning.\n\n##### 1. Obtain Your Database ID\n- To get the database ID, open your Notion database as a full page in your browser.\n- Copy the full URL from the address bar. The URL will look something like this: `https://www.notion.so/<DATABASE_ID>?v=<VIEW_ID>`\n- Example URL `https://www.notion.so/12345bcxyz?v=11111aaaaaa`. The **Database ID** is: `12345bcxyz`.\n\n##### 2. Obtain Your Database Structure\n- Manually list out each property, including Name, Type, and Options (Select, Multi-select, Status).\n- Use the [Notion Database Structure Viewer plugin](https://github.com/TypingMind/plugin-notion-database-structure-viewer).\n\n#### ⚠️ **Limitations:**\n- The plugin does **not support** the following property types for querying: Relation, Rollup, Verification, Formula, Unique ID.\n\n#### 👉 **Rate Limits:**\n- There are rate limits for Notion API requests. Learn more at [Notion API Rate Limits](https://developers.notion.com/reference/request-limits#rate-limits).\n- There are size limits on certain parameters, as well as the depth of children in requests. Learn more at [Notion API Size Limits](https://developers.notion.com/reference/request-limits#size-limits)\n\n### 💡 **Example Usage**  \n- As an HR professional, I want to filter employees based on specific conditions. First, I need to provide the AI with the context of my database, including the database URL along with the database structure description.\n\nGiven the description of my Employee Directory Database as follows: \n> Notion Database URL: `https://www.notion.so/12345bcxyz?v=11111aaaaaa`\n>\n> Database Structure:\n> 1. Name (Title)\n> 2. Years of Experience (Number)\n> 3. Skills (Multi-select) - Options: Project Management, Programming, Data Analysis, Communication, Leadership, Design, Marketing, Sales, MLOps, FullStack\n> 4. Probation Passed (Checkbox)\n> 5. Location (Select) - Options: HQ - New York, Office - London, Office - Singapore, Remote - Domestic, Remote - International, Hybrid, Office - New York\n> 6. Role (Select) - Options: Engineer, Manager, Designer, Analyst, Developer, Director, Coordinator, Specialist\n> 7. LinkedIn Profile (URL)\n> 8. Performance Review Status (Status) - Options: Not started, In progress, Done\n> 9. Email (Email)\n> 10. Start Date (Date)\n> 11. Department (Select) - Options: Engineering, Marketing, Sales, HR, Finance, Operations, Customer Support, Design\n> 12. Attachments (Files)\n> 13. Phone (Phone Number)\n> 14. Notes (Rich Text)\n\nThen, I can ask the AI to retrieve employees based on my needs. Here are some examples:\n\nExample 1:\n> Filter employees who have not passed probation.\n\nExample 2:\n> Filter employees in the Engineering Department, sort them by Name (A-Z), and retrieve the first 5 individuals.\n\nExample 3:\n> Filter employees in the Engineering Department with roles of Engineer or Analyst, hired after 2025-01-01, and sort them by Name (A-Z).",
+    "openaiSpec": {
+        "name": "perform_notion_database_query",
+        "description": "Perform a Notion database query using the Notion API, including filters, sorting, and pagination. Provide the Notion Database ID and Database Structure to use this function.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "databaseId": {
+                    "type": "string",
+                    "description": "The ID of the Notion database for create and read operations."
+                },
+                "databaseStructure": {
+                    "type": "array",
+                    "description": "A list of properties from the Notion database structure, focusing on related properties used for filtering and sorting criteria. There's no need to include all properties.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "The name of the property."
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "The type of the property.",
+                                "enum": [
+                                    "title",
+                                    "number",
+                                    "multi_select",
+                                    "select",
+                                    "checkbox",
+                                    "url",
+                                    "status",
+                                    "email",
+                                    "date",
+                                    "files",
+                                    "phone_number",
+                                    "rich_text"
+                                ]
+                            },
+                            "options": {
+                                "type": "array",
+                                "description": "List of options for select, multi-select, and status properties.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "description": "Name of the option."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "filter": {
+                    "type": "object",
+                    "description": "Filters to refine the database query, supporting nested conditions and operations specific to property types.",
+                    "properties": {
+                        "and": {
+                            "type": "array",
+                            "description": "List of conditions where all must be true.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "property": {
+                                        "type": "string",
+                                        "description": "The name or ID of the property to filter."
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "checkbox",
+                                            "number",
+                                            "title",
+                                            "text",
+                                            "select",
+                                            "multi_select",
+                                            "date",
+                                            "relation",
+                                            "formula",
+                                            "rollup",
+                                            "status"
+                                        ],
+                                        "description": "The type of the property being filtered."
+                                    },
+                                    "checkbox": {
+                                        "type": "object",
+                                        "description": "Filter operations for checkbox properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "boolean",
+                                                "description": "Checks if the checkbox is checked or not."
+                                            }
+                                        }
+                                    },
+                                    "number": {
+                                        "type": "object",
+                                        "description": "Filter operations for number properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "number",
+                                                "description": "Checks if the number equals the given value."
+                                            },
+                                            "greater_than": {
+                                                "type": "number",
+                                                "description": "Checks if the number is greater than the given value."
+                                            },
+                                            "less_than": {
+                                                "type": "number",
+                                                "description": "Checks if the number is less than the given value."
+                                            },
+                                            "greater_than_or_equal_to": {
+                                                "type": "number",
+                                                "description": "Checks if the number is greater than or equal to the given value."
+                                            },
+                                            "less_than_or_equal_to": {
+                                                "type": "number",
+                                                "description": "Checks if the number is less than or equal to the given value."
+                                            }
+                                        }
+                                    },
+                                    "text": {
+                                        "type": "object",
+                                        "description": "Filter operations for text properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the text contains the given substring."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the text does not contain the given substring."
+                                            },
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the text equals the given value."
+                                            },
+                                            "starts_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text starts with the given value."
+                                            },
+                                            "ends_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text ends with the given value."
+                                            }
+                                        }
+                                    },
+                                    "rich_text": {
+                                        "type": "object",
+                                        "description": "Filter operations for rich_text properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the text contains the given substring."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the text does not contain the given substring."
+                                            },
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the text equals the given value."
+                                            },
+                                            "starts_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text starts with the given value."
+                                            },
+                                            "ends_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text ends with the given value."
+                                            }
+                                        }
+                                    },
+                                    "title": {
+                                        "type": "object",
+                                        "description": "Filter operations for title properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the title contains the given substring."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the title does not contain the given substring."
+                                            },
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the title equals the given value."
+                                            },
+                                            "starts_with": {
+                                                "type": "string",
+                                                "description": "Checks if the title starts with the given value."
+                                            },
+                                            "ends_with": {
+                                                "type": "string",
+                                                "description": "Checks if the title ends with the given value."
+                                            }
+                                        }
+                                    },
+                                    "select": {
+                                        "type": "object",
+                                        "description": "Filter operations for select properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the selected option equals the given value."
+                                            },
+                                            "does_not_equal": {
+                                                "type": "string",
+                                                "description": "Checks if the selected option does not equal the given value."
+                                            }
+                                        }
+                                    },
+                                    "multi_select": {
+                                        "type": "object",
+                                        "description": "Filter operations for multi-select properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the multi-select property contains the given value."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the multi-select property does not contain the given value."
+                                            }
+                                        }
+                                    },
+                                    "date": {
+                                        "type": "object",
+                                        "description": "Filter operations for date properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the date equals the given value (ISO 8601 format)."
+                                            },
+                                            "before": {
+                                                "type": "string",
+                                                "description": "Checks if the date is before the given value (ISO 8601 format)."
+                                            },
+                                            "after": {
+                                                "type": "string",
+                                                "description": "Checks if the date is after the given value (ISO 8601 format)."
+                                            },
+                                            "on_or_before": {
+                                                "type": "string",
+                                                "description": "Checks if the date is on or before the given value (ISO 8601 format)."
+                                            },
+                                            "on_or_after": {
+                                                "type": "string",
+                                                "description": "Checks if the date is on or after the given value (ISO 8601 format)."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "or": {
+                            "type": "array",
+                            "description": "List of conditions where all must be true.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "property": {
+                                        "type": "string",
+                                        "description": "The name or ID of the property to filter."
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "checkbox",
+                                            "number",
+                                            "text",
+                                            "select",
+                                            "multi_select",
+                                            "date",
+                                            "status",
+                                            "files"
+                                        ],
+                                        "description": "The type of the property being filtered."
+                                    },
+                                    "checkbox": {
+                                        "type": "object",
+                                        "description": "Filter operations for checkbox properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "boolean",
+                                                "description": "Checks if the checkbox is checked or not."
+                                            }
+                                        }
+                                    },
+                                    "number": {
+                                        "type": "object",
+                                        "description": "Filter operations for number properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "number",
+                                                "description": "Checks if the number equals the given value."
+                                            },
+                                            "greater_than": {
+                                                "type": "number",
+                                                "description": "Checks if the number is greater than the given value."
+                                            },
+                                            "less_than": {
+                                                "type": "number",
+                                                "description": "Checks if the number is less than the given value."
+                                            },
+                                            "greater_than_or_equal_to": {
+                                                "type": "number",
+                                                "description": "Checks if the number is greater than or equal to the given value."
+                                            },
+                                            "less_than_or_equal_to": {
+                                                "type": "number",
+                                                "description": "Checks if the number is less than or equal to the given value."
+                                            }
+                                        }
+                                    },
+                                    "text": {
+                                        "type": "object",
+                                        "description": "Filter operations for text properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the text contains the given substring."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the text does not contain the given substring."
+                                            },
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the text equals the given value."
+                                            },
+                                            "starts_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text starts with the given value."
+                                            },
+                                            "ends_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text ends with the given value."
+                                            }
+                                        }
+                                    },
+                                    "rich_text": {
+                                        "type": "object",
+                                        "description": "Filter operations for rich_text properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the text contains the given substring."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the text does not contain the given substring."
+                                            },
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the text equals the given value."
+                                            },
+                                            "starts_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text starts with the given value."
+                                            },
+                                            "ends_with": {
+                                                "type": "string",
+                                                "description": "Checks if the text ends with the given value."
+                                            }
+                                        }
+                                    },
+                                    "title": {
+                                        "type": "object",
+                                        "description": "Filter operations for title properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the title contains the given substring."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the title does not contain the given substring."
+                                            },
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the title equals the given value."
+                                            },
+                                            "starts_with": {
+                                                "type": "string",
+                                                "description": "Checks if the title starts with the given value."
+                                            },
+                                            "ends_with": {
+                                                "type": "string",
+                                                "description": "Checks if the title ends with the given value."
+                                            }
+                                        }
+                                    },
+                                    "select": {
+                                        "type": "object",
+                                        "description": "Filter operations for select properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the selected option equals the given value."
+                                            },
+                                            "does_not_equal": {
+                                                "type": "string",
+                                                "description": "Checks if the selected option does not equal the given value."
+                                            }
+                                        }
+                                    },
+                                    "multi_select": {
+                                        "type": "object",
+                                        "description": "Filter operations for multi-select properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the multi-select property contains the given value."
+                                            },
+                                            "does_not_contain": {
+                                                "type": "string",
+                                                "description": "Checks if the multi-select property does not contain the given value."
+                                            }
+                                        }
+                                    },
+                                    "date": {
+                                        "type": "object",
+                                        "description": "Filter operations for date properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the date equals the given value (ISO 8601 format)."
+                                            },
+                                            "before": {
+                                                "type": "string",
+                                                "description": "Checks if the date is before the given value (ISO 8601 format)."
+                                            },
+                                            "after": {
+                                                "type": "string",
+                                                "description": "Checks if the date is after the given value (ISO 8601 format)."
+                                            },
+                                            "on_or_before": {
+                                                "type": "string",
+                                                "description": "Checks if the date is on or before the given value (ISO 8601 format)."
+                                            },
+                                            "on_or_after": {
+                                                "type": "string",
+                                                "description": "Checks if the date is on or after the given value (ISO 8601 format)."
+                                            }
+                                        }
+                                    },
+                                    "status": {
+                                        "type": "object",
+                                        "description": "Filter operations for status properties.",
+                                        "properties": {
+                                            "equals": {
+                                                "type": "string",
+                                                "description": "Checks if the status equals the given value."
+                                            }
+                                        }
+                                    },
+                                    "files": {
+                                        "type": "object",
+                                        "description": "Filter operations for files properties.",
+                                        "properties": {
+                                            "contains": {
+                                                "type": "string",
+                                                "description": "Checks if the file property contains the given value."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "sorts": {
+                    "type": "array",
+                    "description": "Defines the sorting order of query results.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "property": {
+                                "type": "string",
+                                "description": "The name or ID of the property to sort by."
+                            },
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "ascending",
+                                    "descending"
+                                ],
+                                "description": "The direction to sort the results ('ascending' or 'descending')."
+                            }
+                        }
+                    }
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "description": "The number of results per page for the read operation. Default value is 100."
+                },
+                "startCursor": {
+                    "type": "string",
+                    "description": "The start cursor for pagination in the read operation."
+                }
+            },
+            "required": [
+                "databaseId",
+                "databaseStructure"
+            ]
+        }
+    },
+    "userSettings": [
+        {
+            "name": "pluginServer",
+            "label": "Plugin Server",
+            "required": true,
+            "description": "The URL of the plugin server. For more details, refer to the documentation: https://docs.typingmind.com/plugins/plugins-server",
+            "placeholder": "https://...."
+        },
+        {
+            "name": "notionApiKey",
+            "label": "Notion API Key",
+            "description": "Enter your Notion Secret Key. You can create an integration from Notion at https://www.notion.so/profile/integrations",
+            "required": true
+        }
+    ],
+    "code": "/**\n * Perform a query operation on a Notion database.\n * @param {Object} params - The parameters for the operation.\n * @param {string} [params.databaseId] - The ID of the Notion database for create and read operations.\n * @param {Array} [params.databaseStructure] - A list of properties in the Notion database structure, used to generate filter or sort criteria..\n * @param {Object} [params.filter] - Optional filter for querying pages in the read operation.\n * @param {Array} [params.sorts] - Optional sorting criteria for page results in the read operation.\n * @param {number} [params.pageSize] - The number of results per page for the read operation.\n * @param {string} [params.startCursor] - The start cursor for pagination in the read operation.\n * @returns {Promise<Object>} - The response data from the Notion API.\n */\nasync function perform_notion_database_query(params, userSettings) {\n  const { databaseId, databaseStructure = [] } = params;\n  const { pluginServer, notionApiKey } = userSettings;\n\n  if (!pluginServer) {\n    throw new Error(\n      \"Missing the Plugin Server URL. Please set it in the plugin settings.\"\n    );\n  }\n\n  if (!notionApiKey) {\n    throw new Error(\n      \"Missing the Notion API Key. Please set it in the plugin settings.\"\n    );\n  }\n\n  if (!databaseId) {\n    throw new Error(\n      \"Missing the Database Id. Please provide specific Database ID or Database URL\"\n    );\n  }\n\n  if (!databaseStructure.length) {\n    throw new Error(\n      \"Missing the Database Structure Properties. Please provide valid structure of your provided database.\"\n    );\n  }\n\n  try {\n    const result = await queryPages({\n      pluginServerUrl: pluginServer,\n      notionApiKey: notionApiKey,\n      databaseId: databaseId,\n      databaseStructure: databaseStructure,\n      filter: params.filter ?? {},\n      sorts: params.sorts ?? [],\n      pageSize: params.pageSize ?? 100,\n      startCursor: params.startCursor,\n    });\n    return result;\n  } catch (error) {\n    return { error: error.message };\n  }\n}\n\nasync function queryPages({\n  notionApiKey,\n  pluginServerUrl,\n  databaseId,\n  databaseStructure,\n  filter,\n  sorts,\n  pageSize = 100,\n  startCursor = null,\n}) {\n  const requestBody = {\n    notionApiKey: notionApiKey,\n    databaseId: databaseId,\n    pageSize: pageSize,\n    databaseStructure: databaseStructure,\n  };\n  if (filter) requestBody.filter = filter;\n  if (sorts) requestBody.sorts = sorts;\n  if (startCursor) requestBody.startCursor = startCursor;\n\n  try {\n    const response = await fetch(\n      `${pluginServerUrl}/notion-database/query-pages`,\n      {\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\",\n        },\n        body: JSON.stringify(requestBody),\n      }\n    );\n\n    if (!response.ok) {\n      throw new Error(`Error query pages: ${response.statusText}`);\n    }\n\n    const data = await response.json();\n    console.log(JSON.stringify(data));\n    return data;\n  } catch (error) {\n    throw new Error(`Failed to query pages: ${error.message}`);\n  }\n}",
+    "iconURL": "https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/notion.png",
+    "authenticationType": "AUTH_TYPE_NONE",
+    "implementationType": "javascript",
+    "httpAction": {
+        "id": "0ef6f5e9-92c2-4c97-84b3-1f20944a0b7f",
+        "name": "",
+        "url": "{pluginServer}/notion-database/query-pages",
+        "method": "POST",
+        "hasHeaders": true,
+        "requestHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "hasBody": true,
+        "requestBody": "{\n  \"notionApiKey\": \"{notionApiKey}\",\n  \"databaseId\": \"{databaseId}\",\n  \"pageSize\": {pageSize},\n  \"startCursor\": \"{startCursor}\",\n  \"filter\": {filter},\n  \"sorts\": {sorts}\n}"
+    },
+    "oauthConfig": null,
+    "outputType": "respond_to_ai"
+}
